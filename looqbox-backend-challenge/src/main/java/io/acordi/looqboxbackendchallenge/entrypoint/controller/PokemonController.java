@@ -6,6 +6,7 @@ import io.acordi.looqboxbackendchallenge.entrypoint.controller.response.PokemonR
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,8 +23,11 @@ public class PokemonController {
     }
 
     @GetMapping
-    public ResponseEntity<PokemonResponse> getPokemon() {
-        PokemonResponse response = pokemonResponseMapper.toPokemonResponse( getPokemonUseCase.getPokemon(null, null) );
+    public ResponseEntity<PokemonResponse> getPokemon(
+            @RequestHeader(value = "query", required = false) String query,
+            @RequestHeader(value = "sort", required = false) String sort
+            ) {
+        PokemonResponse response = pokemonResponseMapper.toPokemonResponse( getPokemonUseCase.getPokemon(query, sort) );
         return ResponseEntity.ok( response );
     }
 
