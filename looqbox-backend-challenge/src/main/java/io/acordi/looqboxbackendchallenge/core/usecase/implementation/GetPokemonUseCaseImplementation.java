@@ -25,7 +25,9 @@ public class GetPokemonUseCaseImplementation implements GetPokemonUseCase {
         if( name != null && !name.isEmpty() ) {
 
         }
-
+        //Sorting
+        SortingStrategy<Pokemon> sortingStrategy = SortingFactory.getSortingStrategy(sortType);
+        allPokemon = sortingStrategy.sort( allPokemon );
 
         return allPokemon;
     }
