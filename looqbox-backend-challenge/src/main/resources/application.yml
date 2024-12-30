@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: looqbox-microservice-challenge
+acordi:
+  sorting:
+    algorithm: merge
+  pokeapi:
+    url: https://pokeapi.co/api/v2
+
