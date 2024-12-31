@@ -4,10 +4,12 @@ import io.acordi.looqboxbackendchallenge.core.dataprovider.Cache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class CacheImplementation<K, V> implements Cache<K, V> {
 
@@ -25,44 +27,65 @@ public class CacheImplementation<K, V> implements Cache<K, V> {
 
     private final Map<K, CacheEntry<V>> cache;
     private final long ttlMillis;
+    private final ScheduledExecutorService scheduler;
 
     public CacheImplementation(long ttlMillis) {
         this.ttlMillis = ttlMillis;
-        int maxSize = 1000;
-        this.cache = new LinkedHashMap<>(maxSize, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<K, CacheEntry<V>> eldest) {
-                return size() > maxSize;
-            }
-        };
-
+        this.cache = new ConcurrentHashMap<>();
+        this.scheduler = Executors.newSingleThreadScheduledExecutor();
+        startCleanupTask();
         log.info("Cache implementation created");
     }
 
     @Override
     public void put(K key, V value) {
-        synchronized (cache) {
-            cache.put(key, new CacheEntry<>(value, System.currentTimeMillis()));
+        int maxSize = 1000;
+        if (cache.size() >= maxSize) {
+            evictOldest();
         }
+        cache.put(key, new CacheEntry<>(value, System.currentTimeMillis()));
     }
 
     @Override
     public Optional<V> get(K key) {
-        synchronized (cache) {
-            CacheEntry<V> entry = cache.get(key);
-            if (entry != null && (System.currentTimeMillis() - entry.timestamp < ttlMillis)) {
-                return Optional.of(entry.value);
-            } else {
-                cache.remove(key); // Expire entry
-                return Optional.empty();
-            }
+        CacheEntry<V> entry = cache.get(key);
+        if (entry != null && (System.currentTimeMillis() - entry.timestamp < ttlMillis)) {
+            return Optional.of(entry.value);
+        } else {
+            cache.remove(key); // Expire entry
+            return Optional.empty();
         }
     }
 
     @Override
     public void remove(K key) {
-        synchronized (cache) {
-            cache.remove(key);
+        cache.remove(key);
+    }
+
+    private void evictOldest() {
+        K oldestKey = null;
+        long oldestTimestamp = Long.MAX_VALUE;
+
+        for (Map.Entry<K, CacheEntry<V>> entry : cache.entrySet()) {
+            if (entry.getValue().timestamp < oldestTimestamp) {
+                oldestTimestamp = entry.getValue().timestamp;
+                oldestKey = entry.getKey();
+            }
+        }
+
+        if (oldestKey != null) {
+            cache.remove(oldestKey);
+            log.info("Evicted oldest cache entry with key: {}", oldestKey);
         }
     }
+
+    private void startCleanupTask() {
+        scheduler.scheduleAtFixedRate(() -> {
+            long now = System.currentTimeMillis();
+            cache.entrySet().removeIf(entry -> (now - entry.getValue().timestamp) >= ttlMillis);
+            log.debug("Periodic cleanup completed.");
+        }, ttlMillis, ttlMillis, TimeUnit.MILLISECONDS);
+    }
+
 }
+
