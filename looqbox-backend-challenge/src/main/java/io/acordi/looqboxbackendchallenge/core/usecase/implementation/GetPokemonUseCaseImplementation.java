@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class GetPokemonUseCaseImplementation implements GetPokemonUseCase {
 
@@ -27,6 +28,14 @@ public class GetPokemonUseCaseImplementation implements GetPokemonUseCase {
 
         //Filtering the results using the user query
         if( name != null && !name.isEmpty() ) {
+
+            String searchName = name.toLowerCase();
+            allPokemon = allPokemon.parallelStream()
+                    .filter(pokemon -> {
+                        String pokemonName = pokemon.getName();
+                        return pokemonName != null && pokemonName.toLowerCase().contains(searchName);
+                    })
+                    .toList();
 
         }
         //Sorting
