@@ -44,7 +44,7 @@ public class FetchAllPokemonImplementation implements FetchAllPokemon {
 
             cache.put(CACHE_KEY, pokemonList);
             log.atInfo().log("Fetched all Pokemon");
-            
+
             return pokemonList;
         }catch (Exception e) {
             log.atError().log(e.getMessage());
