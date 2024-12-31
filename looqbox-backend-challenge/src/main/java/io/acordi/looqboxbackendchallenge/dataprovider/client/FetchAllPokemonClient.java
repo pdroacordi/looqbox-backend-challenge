@@ -1,7 +1,11 @@
 package io.acordi.looqboxbackendchallenge.dataprovider.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.acordi.looqboxbackendchallenge.dataprovider.client.response.NamedPokemonResponse;
+import io.acordi.looqboxbackendchallenge.dataprovider.exception.ApiUnavailableException;
+import io.acordi.looqboxbackendchallenge.dataprovider.exception.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +26,7 @@ public class FetchAllPokemonClient {
 
     private final int LIMIT = 1302; // Max Pokémon per API request. As this API will not reach prod,
                                     // there's no problem doing like "high limit, low requests", we're not
-                                    // trying to save any resources here.
+                                    // trying to save any memory resources here.
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -59,6 +63,10 @@ public class FetchAllPokemonClient {
         log.info("Fetching all pokemon pages from {}", url);
         return fetchPageAsync(url)
                 .thenCompose(response -> {
+                    if(response == null) {
+                        log.warn("Skipping failed page for URL: {}", url);
+                        return CompletableFuture.completedFuture(results);
+                    }
                     results.addAll(response.getResults());
                     return fetchAllPagesAsync(response.getNext(), results);
                 });
@@ -70,15 +78,28 @@ public class FetchAllPokemonClient {
                 .GET()
                 .build();
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::body)
+                .exceptionally(ex -> {
+                    log.error("Failed to fetch pokemon page from url {}", url);
+                    throw new ApiUnavailableException("Failed to fetch Pokémon page from URL: " + url);
+                })
+                .thenApply( response -> {
+                    if(response.statusCode() != 200) {
+                        throw new ApiUnavailableException("The PokéAPI is currently not available: " + response.statusCode());
+                    }
+                    return response.body();
+                } )
                 .thenApply(this::parseResponse);
     }
 
     private NamedPokemonResponse parseResponse(String responseBody) {
+        if (responseBody == null) {
+            throw new JsonParseException("API returned an empty response.");
+        }
         try {
             return objectMapper.readValue(responseBody, NamedPokemonResponse.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Error parsing Pokémon API response", e);
+        } catch (JsonProcessingException e) {
+            log.error("Error parsing JSON: {}", e.getMessage());
+            throw new JsonParseException("Failed to parse JSON response from API");
         }
     }
 }

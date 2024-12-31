@@ -53,7 +53,7 @@ public class GetPokemonUseCaseImplementation implements GetPokemonUseCase {
 
         try {
             return SortType.valueOf(value.toUpperCase()).name();
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException ignored) {
         }
 
         try {
@@ -62,7 +62,7 @@ public class GetPokemonUseCaseImplementation implements GetPokemonUseCase {
             if (ordinal >= 0 && ordinal < values.length) {
                 return values[ordinal].name();
             }
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException ignored) {
         }
 
         // If neither match, return the value as is
