@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CompletionException.class)
     public ResponseEntity<ExceptionResponse> handleException(CompletionException e) {
         var response = new ExceptionResponse.Builder()
-                .message(e.getMessage())
+                .message(e.getCause().getMessage())
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(response, HttpStatus.SERVICE_UNAVAILABLE);
