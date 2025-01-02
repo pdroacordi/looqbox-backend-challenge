@@ -17,6 +17,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Component
@@ -92,14 +93,28 @@ public class FetchAllPokemonClient {
     }
 
     private NamedPokemonResponse parseResponse(String responseBody) {
-        if (responseBody == null) {
-            throw new JsonParseException("API returned an empty response.");
+        if (responseBody == null || responseBody.isEmpty()) {
+            throw new JsonParseException("API returned an empty or null response.");
         }
+        return parseJson(responseBody, NamedPokemonResponse.class)
+                .orElseThrow(() -> new JsonParseException("Failed to parse JSON response from API"));
+    }
+
+    /**
+     * A utility method for parsing JSON.
+     * @param json the JSON string
+     * @param clazz the class to deserialize into
+     * @param <T> the type of the object
+     * @return an Optional containing the parsed object, or empty if parsing fails
+     */
+    private <T> Optional<T> parseJson(String json, Class<T> clazz) {
         try {
-            return objectMapper.readValue(responseBody, NamedPokemonResponse.class);
+            return Optional.of(objectMapper.readValue(json, clazz));
+        } catch (JsonMappingException e) {
+            log.error("JSON mapping error: {}", e.getMessage(), e);
         } catch (JsonProcessingException e) {
-            log.error("Error parsing JSON: {}", e.getMessage());
-            throw new JsonParseException("Failed to parse JSON response from API");
+            log.error("JSON processing error: {}", e.getMessage(), e);
         }
+        return Optional.empty();
     }
 }
