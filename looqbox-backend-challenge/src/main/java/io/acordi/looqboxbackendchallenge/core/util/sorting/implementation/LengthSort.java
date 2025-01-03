@@ -13,7 +13,7 @@ public class LengthSort implements SortingStrategy<Pokemon> {
     @Override
     public List<Pokemon> sort(List<Pokemon> items) {
         SortingAlgorithm<Pokemon> algorithm = SortingAlgorithmFactory.getAlgorithm();
-        return algorithm.sort(items, (p1, p2) -> Integer.compare(p1.getName().length(), p2.getName().length()) );
+        return algorithm.sort(items, (p1, p2) -> p1.getName().length() < p2.getName().length());
     }
 
 }

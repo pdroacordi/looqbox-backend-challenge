@@ -12,6 +12,6 @@ public class AlphabeticalSort implements SortingStrategy<Pokemon> {
     @Override
     public List<Pokemon> sort(List<Pokemon> items) {
         SortingAlgorithm<Pokemon> algorithm = SortingAlgorithmFactory.getAlgorithm();
-        return algorithm.sort(items, (p1, p2) -> p1.getName().compareToIgnoreCase(p2.getName()) );
+        return algorithm.sort(items, (p1, p2) -> p1.getName().compareToIgnoreCase(p2.getName()) < 0);
     }
 }
